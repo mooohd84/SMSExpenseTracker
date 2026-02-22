@@ -1,0 +1,10 @@
+{
+  "appTitle": "SMS Expense Tracker",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "listeningMessage": "Listening for SMS & Deep Links...",
+  "@listeningMessage": {
+    "description": "Message shown on the home screen"
+  }
+}

@@ -1,0 +1,45 @@
+name: sms_expenses_tracker
+description: A cross-platform SMS expense tracker.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.5.1
+  
+  # Database
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.1.2
+  
+  # SMS & Deep Linking
+  app_links: ^6.3.0
+  permission_handler: ^11.3.1
+  
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.0
+  
+  # Charts
+  fl_chart: ^0.69.0
+  shared_preferences: ^2.5.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  
+  # Code Generation
+  build_runner: ^2.4.8
+  isar_generator: ^3.1.0+1
+
+flutter:
+  uses-material-design: true
+  generate: true
