@@ -49,17 +49,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     }
   }
 
-  Future<void> _checkClipboardAndParse() async {
+  Future<void> _checkClipboardAndParse({bool manualTrigger = false}) async {
     try {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
       final text = clipboardData?.text?.trim();
       
-      if (text == null || text.isEmpty) return;
+      if (text == null || text.isEmpty) {
+        if (manualTrigger && mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text("Clipboard is empty or access denied.")),
+           );
+        }
+        return;
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final lastParsedText = prefs.getString('last_parsed_clipboard');
 
-      if (text == lastParsedText) {
+      if (!manualTrigger && text == lastParsedText) {
         // Already processed this copied text
         return;
       }
@@ -84,9 +91,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             ),
           );
         }
+        if (manualTrigger && mounted && transactions.isEmpty) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text("No valid expenses found in clipboard!")),
+           );
+        }
       }
     } catch (e) {
       debugPrint("Error checking clipboard: \$e");
+      if (manualTrigger && mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text("Failed to read clipboard. Please ensure permission is granted.")),
+           );
+      }
     }
   }
 
@@ -100,6 +117,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         title: Text(appLocalizations.appTitle),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.content_paste),
+            tooltip: 'Paste Expense from Clipboard',
+            onPressed: () => _checkClipboardAndParse(manualTrigger: true),
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'clear_history') {
