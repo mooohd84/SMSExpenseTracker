@@ -11,6 +11,7 @@ import '../services/sms_parser_service.dart'; // For Debug FAB
 
 import '../widgets/expenses_chart.dart';
 import '../models/transaction_model.dart';
+import '../utils/url_cleaner.dart';
 
 
 enum DurationFilter { thisMonth, last30Days, last3Months, custom }
@@ -30,10 +31,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Check clipboard once on cold start
+    // Check URL and clipboard once on cold start
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkURLAndParse();
       _checkClipboardAndParse();
     });
+  }
+
+  Future<void> _checkURLAndParse() async {
+    try {
+      // Check the current browser URL for an 'sms' query parameter
+      final smsParam = Uri.base.queryParameters['sms'];
+      
+      if (smsParam != null && smsParam.trim().isNotEmpty) {
+        // Parse the SMS text
+        final transactions = SmsParserService.parseBulkSms(smsParam);
+        
+        if (transactions.isNotEmpty) {
+          for (var t in transactions) {
+            await ref.read(transactionRepositoryProvider).addTransaction(t);
+          }
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("${transactions.length} Expense(s) auto-added from URL!"),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        } else {
+             if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Failed to parse SMS from URL.")),
+                );
+             }
+        }
+        
+        // Clean the URL so refreshing the page doesn't add the expense again
+        cleanUrlParameter('sms');
+      }
+    } catch (e) {
+      debugPrint("Error checking URL: \$e");
+    }
   }
 
   @override
