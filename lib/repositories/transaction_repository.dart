@@ -78,7 +78,28 @@ class TransactionRepository {
   Future<void> addTransaction(Transaction transaction) async {
     if (!_isInitialized) await init();
     
-    // Smart LEarning: Check if we have a learned category for this merchant
+    // Deduplication Check: Prevent identical SMS transactions
+    bool isDuplicate = false;
+    if (kIsWeb) {
+      isDuplicate = _webStorage.any((t) => 
+        t.amount == transaction.amount && 
+        t.merchant == transaction.merchant && 
+        t.date == transaction.date
+      );
+    } else {
+      isDuplicate = await _isar.transactions.filter()
+          .amountEqualTo(transaction.amount)
+          .merchantEqualTo(transaction.merchant)
+          .dateEqualTo(transaction.date)
+          .isNotEmpty();
+    }
+
+    if (isDuplicate) {
+      debugPrint("Duplicate transaction ignored: \${transaction.merchant} - \${transaction.amount}");
+      return; // Skip saving
+    }
+
+    // Smart Learning: Check if we have a learned category for this merchant
     if (transaction.merchant != null && transaction.merchant != 'Unknown Merchant') {
          // Normalized key
          final key = transaction.merchant!.trim().toLowerCase();
