@@ -155,6 +155,21 @@ class TransactionRepository {
       });
   }
 
+  Future<void> deleteTransaction(int id) async {
+      if (!_isInitialized) await init();
+
+      if (kIsWeb) {
+        _webStorage.removeWhere((t) => t.id == id);
+        _webStreamController.add(List.from(_webStorage));
+        await _saveWebTransactions();
+        return;
+      }
+
+      await _isar.writeTxn(() async {
+        await _isar.transactions.delete(id);
+      });
+  }
+
   Future<void> _saveMerchantMap() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('merchant_category_map', json.encode(_merchantCategoryMap));

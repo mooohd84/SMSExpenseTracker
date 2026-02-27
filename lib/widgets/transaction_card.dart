@@ -14,89 +14,135 @@ class TransactionCard extends ConsumerWidget {
     final formattedDate = DateFormat('MMM d, yyyy - h:mm a').format(transaction.date);
     final currencyFormatter = NumberFormat.currency(symbol: 'SAR ', decimalDigits: 2);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            // Icon based on category or type
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                shape: BoxShape.circle,
+    return Dismissible(
+      key: Key(transaction.id.toString()),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerRight,
+        child: const Icon(Icons.delete, color: Colors.white, size: 28),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Delete Expense"),
+            content: const Text("Are you sure you want to delete this specific expense?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text("Cancel"),
               ),
-              child: Icon(
-                _getIconForCategory(transaction.category),
-                color: Theme.of(context).primaryColor,
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text("Delete"),
               ),
-            ),
-            const SizedBox(width: 16),
-            // Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    transaction.merchant ?? 'Unknown Merchant',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+            ],
+          ),
+        );
+      },
+      onDismissed: (direction) async {
+         final repo = ref.read(transactionRepositoryProvider);
+         await repo.deleteTransaction(transaction.id);
+         if (context.mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(
+                   content: Text('Expense deleted'),
+                   behavior: SnackBarBehavior.floating,
+               )
+             );
+         }
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Icon based on category or type
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _getIconForCategory(transaction.category),
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      transaction.merchant ?? 'Unknown Merchant',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formattedDate,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
+                    const SizedBox(height: 4),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  if (transaction.category != null)
-                     InkWell(
-                       onTap: () => _showCategoryEditDialog(context, ref),
-                       borderRadius: BorderRadius.circular(8),
-                       child: Container(
-                         margin: const EdgeInsets.only(top: 8.0),
-                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                         decoration: BoxDecoration(
-                           color: Colors.blue.withOpacity(0.1),
-                           borderRadius: BorderRadius.circular(8),
-                           border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                         ),
-                         child: Row(
-                           mainAxisSize: MainAxisSize.min,
-                           children: [
-                             Text(
-                               transaction.category!,
-                               style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.blue[800],
+                    if (transaction.category != null)
+                       InkWell(
+                         onTap: () => _showCategoryEditDialog(context, ref),
+                         borderRadius: BorderRadius.circular(8),
+                         child: Container(
+                           margin: const EdgeInsets.only(top: 8.0),
+                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                           decoration: BoxDecoration(
+                             color: Colors.blue.withOpacity(0.1),
+                             borderRadius: BorderRadius.circular(8),
+                             border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                           ),
+                           child: Row(
+                             mainAxisSize: MainAxisSize.min,
+                             children: [
+                               Text(
+                                 transaction.category!,
+                                 style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.blue[800],
+                                 ),
                                ),
-                             ),
-                             const SizedBox(width: 4),
-                             Icon(Icons.edit, size: 12, color: Colors.blue[800]),
-                           ],
+                               const SizedBox(width: 4),
+                               Icon(Icons.edit, size: 12, color: Colors.blue[800]),
+                             ],
+                           ),
                          ),
-                       ),
-                     )
-                ],
+                       )
+                  ],
+                ),
               ),
-            ),
-            // Amount
-            Text(
-              currencyFormatter.format(transaction.amount),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.redAccent, 
+              // Amount
+              Text(
+                currencyFormatter.format(transaction.amount),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.redAccent, 
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
